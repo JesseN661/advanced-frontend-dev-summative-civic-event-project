@@ -306,6 +306,20 @@ async function loadEvents() {
             const location = escapeHTML(event.location || "Location to be announced");
             const image = event.image_url || event.image || event.metadata?.image_url || "";
             const eventId = escapeHTML(event.id);
+            const isAdmin = Boolean(
+                    authToken &&
+                    currentUser &&
+                    String(currentUser.role || "").toLowerCase() === "admin"
+                );
+
+                const adminControls = isAdmin
+                    ? `
+                        <div class="mt-4 flex gap-3">
+                            <button type="button" class="edit-event-button rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600" data-event-id="${eventId}">Edit</button>
+                            <button type="button" class="delete-event-button rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700" data-event-id="${eventId}">Delete</button>
+                        </div>
+                    `
+                    : "";
 
             const imageMarkup = image
                 ? `<img src="${escapeHTML(image)}" alt="${title}" class="h-44 w-full rounded-xl object-cover" loading="lazy">`
@@ -323,6 +337,7 @@ async function loadEvents() {
                             <p>🕒 ${time}</p>
                             <p>📍 ${location}</p>
                         </div>
+                        ${adminControls}
                         <button class="register-event-button mt-5 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700" data-event-id="${eventId}">Register for Event</button>
                     </div>
                 </article>
@@ -602,6 +617,36 @@ $(document).on("click", ".register-event-button", async function () {
         }
     }
 });
+        $(document).on("click", ".delete-event-button", async function () {
+    if (!authToken || !currentUser || String(currentUser.role || "").toLowerCase() !== "admin") {
+        showToast("Only administrators can delete events.");
+        return;
+    }
+
+    const eventId = $(this).attr("data-event-id");
+    const card = $(this).closest(".event-card");
+    const title = card.find("h3").text();
+
+    if (!eventId) {
+        showToast("Unable to identify this event.");
+        return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This action may be permanent.`)) {
+        return;
+    }
+
+    try {
+        const result = await apiRequest(`/events/${encodeURIComponent(eventId)}`, {
+            method: "DELETE"
+        });
+
+        showToast(result.message || "Event deleted successfully.");
+        await loadEvents();
+    } catch (error) {
+        showToast(error.message || "The event could not be deleted.");
+    }
+    });
 
 updateNavigation();
 loadEvents();

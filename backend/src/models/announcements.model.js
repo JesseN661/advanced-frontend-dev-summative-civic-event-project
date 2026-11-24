@@ -1,3 +1,4 @@
+
 import db from '../config/db.js';
 
 export const findAll = async (filters = {}) => {
@@ -11,7 +12,10 @@ export const findAll = async (filters = {}) => {
 };
 
 export const findById = async (id) => {
-    const res = await db.query('SELECT * FROM announcements WHERE id=$1', [id]);
+    const res = await db.query(
+        'SELECT * FROM announcements WHERE id = $1',
+        [id]
+    );
     return res.rows[0];
 };
 
